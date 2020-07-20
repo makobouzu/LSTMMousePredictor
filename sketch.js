@@ -4,17 +4,18 @@ let mousePos = ({x:0.5, y:0.5});
 let lastPositions =[];
 let rawTrainingData = [];
 let keepTrain = [];
-let predictAhead = 8;
+let predictAhead = 16;
 let model;
 let batchSize = 32;//一回の学習で回す量
 let flag = false;
 let mode = 1;
 let f = 0;
 let simulationFlag = false;
+let predicted = false;
 
 
 function setup() {
-  frameRate(5);
+  frameRate(30);
   init();
   createCanvas(400, 400);
 }
@@ -23,9 +24,9 @@ function draw() {
   if(mode == 1){
     //testの処理
     background(204, 255, 243);
-    textSize(32);
-    fill(0);
-    text('test mode', 10, 30)
+    // textSize(32);
+    // fill(0);
+    // text('test mode', 10, 30)
 
     //最新のマウス位置からLSTM予測を実行
     if(!simulationFlag){
@@ -50,32 +51,54 @@ function draw() {
   }else if(mode == 2){
     //trainの処理
     background(255,180,153);
-    textSize(32);
-    fill(0);
-    text('train mode', 10, 30);
+    // textSize(32);
+    // fill(0);
+    // text('train mode', 10, 30);
 
-
-    if(!simulationFlag){
-      mousePos = {x:mouseX/width, y:mouseY/height};
+    if(!predicted){
+      if(!simulationFlag){
+        mousePos = {x:mouseX/width, y:mouseY/height};
+      }else{
+        mousePos = {x:myrect(f)[0]/width, y:myrect(f)[1]/height};
+      }
     }else{
-      mousePos = {x:myrect(f)[0]/width, y:myrect(f)[1]/height};
+      if(!simulationFlag){
+        mousePos = {x:mouseX/width, y:mouseY/height};
+        predict_result(mouseX, mouseY);
+      }else{
+        mousePos = {x:myrect(f)[0]/width, y:myrect(f)[1]/height};
+        predict_result(myrect(f)[0], myrect(f)[1]);
+      }
     }
     lastPositions.push(mousePos);
     lastPositions.shift();
     fill(255, 138, 128);
-    if(!simulationFlag){
-      ellipse(mouseX, mouseY, circleSize, circleSize);
+    if(!predicted){
+      fill(255, 138, 128);
+      for(let i = 0; i < array2.length; i++){
+        ellipse(array2[i].x * width, array2[i].y * height, circleSize, circleSize);
+      }
     }else{
-      ellipse(myrect(f)[0], myrect(f)[1], circleSize, circleSize);
+      if(flag){
+        fill(255, 138, 128);
+        for(let i = 0; i < array2.length; i++){
+          ellipse(array2[i].x * width, array2[i].y * height, circleSize, circleSize);
+        }
+
+        fill(128, 149, 255);
+        for(let i = 0; i < array.length; i++){
+          ellipse(array[i].x * width, array[i].y * height, circleSize, circleSize);
+        }
+      }
     }
     keepTrain = inputData(lastPositions);
   }
-  f+=20;
+  f+=5;
 }
 
+// example1 draw rectangle
 let x = 100;
 let y = 100;
-
 function myrect(i){
   let num = i%800;
   let side = 200;
@@ -88,34 +111,45 @@ function myrect(i){
   }else if(num/side <= 4){
     y = 300 - (num-side*3);
   }
-  return [x, y]
+  return [x, y];
 }
 
-function keyTyped(){
-  if(key === "1"){
-    console.log("test mode");
-    if(keepTrain.length > 0){
-      compiledModel();
-      trainLoss(keepTrain);
-      rawTrainingData = [];
-      keepTrain = [];
-    }
-    mode = 1;
-  }else if(key === "2"){
-    console.log("train mode");
-    mode = 2;
-  }
-  if(key === "s"){
-    simulationFlag = true;
-  }else if(key === "a"){
-    simulationFlag = false;
-  }
-}
+
+// function keyTyped(){
+//   if(key === "1"){
+//     //test mode
+//     selectMode(0)
+//     document.getElementById("test").checked = true;
+//   }else if(key === "2"){
+//     // train mode
+//     document.getElementById("train").checked = true;
+//     selectMode(1)
+//   }
+//   if(key === "s"){
+//     document.getElementById("prediction").checked = true;
+//     selectDrawing(1);
+//   }else if(key === "a"){
+//     document.getElementById("prediction").checked = false;
+//     selectDrawing(0);
+//   }
+//   if(key === "d"){
+//     // if(!predicted == true){
+//     //   document.getElementById("manual").checked = !predicted;
+//     // }else{
+//     //   document.getElementById("auto").checked = predicted;
+//     // }
+//     selectPrediction(predicted)
+//   }
+// }
+
 
 async function init() {
   lastPositions = Array(positionHistoryLength).fill(mousePos);
+  tf.setBackend('cpu');
+  console.log("Backend: ", tf.getBackend());
   console.log("loading model....");
-  model = await tf.loadModel("https://raw.githubusercontent.com/voodoohop/Mouse_tracking_predictor/master/tensorflowjs_model/model.json");
+  // model = await tf.loadModel("https://raw.githubusercontent.com/voodoohop/Mouse_tracking_predictor/master/tensorflowjs_model/model.json"); //v0.9.0
+  model = await tf.loadLayersModel("https://raw.githubusercontent.com/voodoohop/Mouse_tracking_predictor/master/tensorflowjs_model/model.json"); //v2.0.0
   model.predict;
   console.log("model has been loaded!");
 }
@@ -130,12 +164,14 @@ let predict_result = async (mouse_x, mouse_y)=>{
   /// await以下が返されるまで処理を待つ関数
   //予測データの取得
   let input = lastPositions;
+  array2 = lastPositions;
   for (let p=0; p < predictAhead; p++) {
     const predictionNow =  await predict(input);
     input  = [...input, predictionNow].slice(-positionHistoryLength);
   }
   array = input.slice(-predictAhead); // predict(lastPositions)
-  array2 = input.slice(0, -predictAhead);
+  //本当は16点データを返したい（lastPositionsがawaitしてくれない）
+  // array2 = input.slice(0, -predictAhead);
   flag = true;
 }
 
@@ -165,9 +201,30 @@ let trainLoss = async (trainingData) => {
   while (true) {
     const trainRes = await trainBatch(pickTrainingBatch(trainingData));
     console.log("trained");
+    console.log("Train Loss: ",R.last(trainRes.history.loss));
     return R.last(trainRes.history.loss);
   }
 }
+
+// function lossHistory(){
+//   if(history.length < 1){
+//     history = R.last(trainRes.history.loss);
+//   }else{
+//     history = [...history, R.last(trainRes.history.loss)];
+//   }
+
+//   const canvas = document.getElementById('canvas_lossHistory');
+//   const context = canvas.context2d(width, 100);
+//   context.beginPath();
+//   context.moveTo(0, 0);
+//   for (let x = 0; x < history.length; x++) context.lineTo(x*5, 100*(history[x]/R.max(...history)));
+//   context.lineJoin = context.lineCap = "round";
+//   context.strokeStyle = "blue";
+//   context.stroke();
+//   context.canvas;
+// }
+
+
 
 //detail---------------------------------------------------------------------------
 //test_detail
@@ -199,4 +256,40 @@ function myshuffle(b) {
         a[j] = x;
     }
     return a;
+}
+
+// select buttons
+function selectMode(a){
+  if(a == 0){
+    // test mode
+    document.getElementById("prediction").disabled = true;
+    console.log("test mode");
+    if(keepTrain.length > 0){
+      compiledModel();
+      trainLoss(keepTrain);
+      // lossHistory();
+      rawTrainingData = [];
+      keepTrain = [];
+    }
+    mode = 1;
+  }else{
+    // train mode
+     document.getElementById("prediction").disabled = false;
+    console.log("train mode");
+    mode = 2;
+  }
+  console.log(a);
+}
+
+function selectPrediction(s){
+  predicted = s;
+
+}
+
+function selectDrawing(a){
+  if(a == 0){
+    simulationFlag = false;
+  }else{
+    simulationFlag = true;
+  }
 }
