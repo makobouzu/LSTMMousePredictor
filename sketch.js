@@ -1,23 +1,26 @@
-const circleSize = 10; //circleの大きさ
-let positionHistoryLength = 16; //学習に渡すmouseのpositionの長さ
-let mousePos = ({x:0.5, y:0.5}); //mousePosの初期値
-let prediction_source =[]; //学習に渡す固定長Array
-let rawTrainingData = []; //train時のxy座標を格納する可変長Array
-let keepTrain = []; //xy座標とlabelを格納するか変調Array
-let predictAhead = 16; //推論される長さ 16手先まで推論
-let model;
-let batchSize = 32; //一回の学習で回す量
-let flag = false; //推論されたかどうか
-let mode = 1; //test mode - train mode
-// let f = 0; //
-let simulationFlag = false; //trainじに推論結果を返すかどうか
-let predicted = false; 
-const myfigure = myrect();
+let   model;
+const position_history_length = 16; //学習に渡すmouseのpositionの長さ
+const predict_ahead           = 16; //推論される長さ 16手先まで推論
+let   prediction_source       = []; //mouseの軌跡・figureの軌跡
+let   raw_data                = []; //train時にxy座標を格納する可変長Array
+let   keep_data               = []; //xy座標とlabelを格納するか変調Array
+const batchSize               = 32; //一回の学習で回す数
+const circle_size             = 10;
+let   mode                    = 1; //test mode(1) - train mode(2)
+let   simulation_flg          = false; //train時に推論結果を返すかどうか
+const myfigure                = myrect();
+
+
+//配列変換の便利機能
+const pointToArray      = ({x,y})   => [x,y];
+const arrayToPoint      = (_array)  => {return {x:_array[0], y:_array[1]};}
+let   formatInputTensor = positions => tf.tensor2d(positions.map(pointToArray)).reshape([2, position_history_length]).expandDims();
+
 
 async function init() {
-  prediction_source = Array(positionHistoryLength).fill(mousePos);
+  prediction_source = Array(position_history_length).fill({x:1, y:1});
   tf.setBackend('cpu'); 
-  console.log("Backend: ", tf.getBackend());
+  console.log("Backend", tf.getBackend());
   console.log("loading model....");
   model = await tf.loadLayersModel("https://raw.githubusercontent.com/voodoohop/Mouse_tracking_predictor/master/tensorflowjs_model/model.json"); //v2.0.0
   model.predict;
@@ -25,7 +28,7 @@ async function init() {
   frameRate(30); 
 }
 
-async function setup() {
+function setup() {
   frameRate(0); //block draw before init
   init();
   createCanvas(400, 400);
@@ -35,73 +38,138 @@ async function draw() {
   if(mode == 1){
     //test
     background(204, 255, 243);
-    //最新のマウス位置からLSTM予測を実行
-    let data = []
-    if(!simulationFlag){
-      data = await predict_result(mouseX, mouseY, prediction_source);
+    
+    let data = [];
+    if(!simulation_flg){
+      data = await predict(mouseX, mouseY, prediction_source);
     }else{
-      data = await predict_result(myfigure.next().value.x, myfigure.next().value.y, prediction_source);
+      data = await predict(myfigure.next().value.x, myfigure.next().value.y, prediction_source);
     }
-    //予測結果が取得できたら、予測を描画
     let prediction = data[0];
-    prediction_source = data[1]
-    //軌跡の描画
-    fill(255, 138, 128);
-    for(let i = 0; i < prediction_source.length; i++){
-      ellipse(prediction_source[i].x * width, prediction_source[i].y * height, circleSize, circleSize);
-    }
-    //推論の描画
-    fill(128, 149, 255);
-    for(let i = 0; i < prediction.length; i++){
-      ellipse(prediction[i].x * width, prediction[i].y * height, circleSize, circleSize);
-    }
+    prediction_source = data[1];
+    
+    drawPoints(prediction_source, prediction);
+    
   }else if(mode == 2){  
     //train
     background(255,180,153);
-    //最新のマウス位置からLSTM予測を実行
-    let data = []
-    if(!simulationFlag){
-      data = await predict_result(mouseX, mouseY, prediction_source);
+    
+    let data = [];
+    if(!simulation_flg){
+      data = await predict(mouseX, mouseY, prediction_source);
     }else{
-      data = await predict_result(myfigure.next().value.x, myfigure.next().value.y, prediction_source);
+      data = await predict(myfigure.next().value.x, myfigure.next().value.y, prediction_source);
     }
-    //予測結果が取得できたら、予測を描画
     let prediction = data[0];
-    prediction_source = data[1]
-    //軌跡の描画
-    fill(255, 138, 128);
-    for(let i = 0; i < prediction_source.length; i++){
-      ellipse(prediction_source[i].x * width, prediction_source[i].y * height, circleSize, circleSize);
-    }
-    //推論の描画
-    fill(128, 149, 255);
-    for(let i = 0; i < prediction.length; i++){
-      ellipse(prediction[i].x * width, prediction[i].y * height, circleSize, circleSize);
-    }
-    keepTrain = inputData(prediction_source);
+    prediction_source = data[1];
+    
+    drawPoints(prediction_source, prediction);
+    
+    keep_data = formatData(prediction_source);//データの引き渡し
   }
 }
 
-function drawPoints(_x, _y){
+//描画
+function drawPoints(_prediction_source, _prediction){
   //軌跡の描画
   fill(255, 138, 128);
-  for(let i = 0; i < array2.length; i++){
-    ellipse(array2[i].x * width, array2[i].y * height, circleSize, circleSize);
+  for(let i = 0; i < _prediction_source.length; i++){
+    ellipse(_prediction_source[i].x * width, _prediction_source[i].y * height, circle_size, circle_size);
   }
   //推論の描画
   fill(128, 149, 255);
-  for(let i = 0; i < array.length; i++){
-    ellipse(array[i].x * width, array[i].y * height, circleSize, circleSize);
+  for(let i = 0; i < _prediction.length; i++){
+    ellipse(_prediction[i].x * width, _prediction[i].y * height, circle_size, circle_size);
   }
 }
 
-function pushPositionArray(_x, _y){
+//推論
+async function predict(_x, _y, _prediction_source) {
+  let mousePos = {x:_x/width, y:_y/height};  
+  _prediction_source.push(mousePos);
+  _prediction_source.shift();
   
+  //データの取得
+  let input = _prediction_source;
+  let prediction_source = _prediction_source;
+  for (let p=0; p < predict_ahead; p++) {
+    const predictionNow =  arrayToPoint(await model.predict(formatInputTensor(input)).data());
+    input  = [...input, predictionNow].slice(-position_history_length);
+  }
+  let prediction = input.slice(-predict_ahead);
+  return [prediction, prediction_source];  
+}
+
+//data収集・整形
+function formatData(_prediction_source){
+  if(raw_data.lenght < 1){
+    raw_data = _prediction_source;
+  }else{
+    raw_data = [...raw_data, _prediction_source];
+  }
+  let training_data = R.zipWith((data,rawLabel) => ({data, label: R.last(rawLabel)}), raw_data, raw_data.slice(1));
+  return training_data;
+}
+
+//train
+async function trainLoss(_training_data) { 
+  console.log("starting", _training_data.length);
   
-  return 
+  //モデルの設定
+  const LEARNING_RATE = 0.015;
+  const optimizer = tf.train.sgd(LEARNING_RATE);
+  model.compile({optimizer, loss: 'meanSquaredError'});
+  
+  while (true) {
+    const pick_batch = R.take(batchSize, _training_data); //batchsizeずつ取得
+    const train_res = await trainBatch(pick_batch); // 
+    console.log("trained");
+    console.log("Train Loss: ",R.last(train_res.history.loss));
+    return R.last(train_res.history.loss);
+  }
+}
+//use in trainLoss, モデルの学習
+async function trainBatch(_train_data){
+  const data = tf.concat(_train_data.map(R.prop("data")).map(formatInputTensor));
+  const labels = tf.tensor(_train_data.map(R.prop("label")).map(pointToArray));
+  return await model.fit(data, labels, {batchSize,epochs:2 });
 }
 
 
+//-----------------------------------------------------------------
+// select buttons
+function selectMode(a){
+  if(a == 0){
+    // test mode
+    document.getElementById("prediction").disabled = true; 
+    console.log("test mode");
+    if(keep_data.length > 0){
+      trainLoss(keep_data);
+      raw_data  = [];
+      keep_data = [];
+    }
+    mode = 1;
+  }else{
+    // train mode
+     document.getElementById("prediction").disabled = false;
+    console.log("train mode");
+    mode = 2;
+  }
+}
+
+function selectPrediction(s){
+  predicted = s;
+}
+
+function selectDrawing(a){
+  if(a == 0){
+    simulation_flg = false;
+  }else{
+    simulation_flg = true;
+  }
+}
+
+// keyTyped
 // function keyTyped(){
 //   if(key === "1"){
 //     //test mode
@@ -130,164 +198,7 @@ function pushPositionArray(_x, _y){
 // }
 
 
-async function predict_result(mouse_x, mouse_y, _lastPositions) {
-  mousePos = {x:mouse_x/width, y:mouse_y/height};  
-  _lastPositions.push(mousePos);
-  _lastPositions.shift();
-  //予測データの取得
-  let input = _lastPositions;
-  let array2 = _lastPositions;
-  for (let p=0; p < predictAhead; p++) {
-    const predictionNow =  await predict(input);
-    input  = [...input, predictionNow].slice(-positionHistoryLength);
-  }
-  let array = input.slice(-predictAhead); // predict(lastPositions)
-  return [array, array2];  
-}
-
-async function predict_array(array) {
-  return new Promise(resolve =>{
-    for (let p=0; p < predictAhead; p++) {
-      const predictionNow =  predict(array);
-      array  = [...array, predictionNow].slice(-positionHistoryLength);
-    }
-    console.log(array)
-    resolve(array)
-  })
-}
-                     
-
-// template
-// async function getPose(_img) {
-//   return new Promise(resolve =>{
-//     let poses = net.estimateSinglePose(_img, {flipHorizontal: false});
-//     resolve(poses);
-//   })
-// }
-
-//train時のdata収集
-function inputData(_prediction_source){
-  if(rawTrainingData.lenght < 1){
-    rawTrainingData = _prediction_source;
-  }else{
-    rawTrainingData = [...rawTrainingData, _prediction_source];
-  }
-  let trainingData = R.zipWith((data,rawLabel) => ({data, label: R.last(rawLabel)}), rawTrainingData, rawTrainingData.slice(1));
-  return trainingData
-}
-
-//modelの設定
-function compiledModel(){
-  const LEARNING_RATE = 0.015;
-  const optimizer = tf.train.sgd(LEARNING_RATE);
-  model.compile({optimizer, loss: 'meanSquaredError'});
-  return model;
-}
-
-let trainLoss = async (trainingData) => { 
-  console.log("starting",trainingData.length);
-  if (!trainLoss) return 1;
-  while (true) {
-    const trainRes = await trainBatch(pickTrainingBatch(trainingData));
-    console.log("trained");
-    console.log("Train Loss: ",R.last(trainRes.history.loss));
-    return R.last(trainRes.history.loss);
-  }
-}
-
-// function lossHistory(){
-//   if(history.length < 1){
-//     history = R.last(trainRes.history.loss);
-//   }else{
-//     history = [...history, R.last(trainRes.history.loss)];
-//   }
-  
-//   const canvas = document.getElementById('canvas_lossHistory');
-//   const context = canvas.context2d(width, 100);
-//   context.beginPath();
-//   context.moveTo(0, 0);
-//   for (let x = 0; x < history.length; x++) context.lineTo(x*5, 100*(history[x]/R.max(...history)));
-//   context.lineJoin = context.lineCap = "round";
-//   context.strokeStyle = "blue";
-//   context.stroke();
-//   context.canvas;
-// }
-
-
-
-//detail---------------------------------------------------------------------------
-//test_detail
-const pointToArray= ({x,y}) => [x,y];
-let formatInputTensor = positions => tf.tensor2d(positions.map(pointToArray)).reshape([2,positionHistoryLength]).expandDims();
-let predict = async positions => { 
-    const [x,y] = await model.predict(formatInputTensor(positions)).data();
-    return {x,y}
-}
-
-//train_detail
-let trainBatch =  async (trainData) => {
-  const trainingData = formatTrainingData(trainData)
-  return await model.fit(trainingData.data, trainingData.labels, {batchSize,epochs:2 })
-}
-let formatTrainingData = (inputData) => { 
-  const data = tf.concat(inputData.map(R.prop("data")).map(formatInputTensor))
-  const labels = tf.tensor(inputData.map(R.prop("label")).map(pointToArray))
-  return {labels,data}
-}
-// let pickTrainingBatch = (data) => R.take(batchSize, myshuffle(data));
-let pickTrainingBatch = (data) => R.take(batchSize, data);
-function myshuffle(b) {
-    const a = R.clone(b);
-    var j, x, i;
-    for (i = a.length - 1; i > 0; i--) {
-        j = Math.floor(Math.random() * (i + 1));
-        x = a[i];
-        a[i] = a[j];
-        a[j] = x;
-    }
-    return a;
-}
-
-// select buttons
-function selectMode(a){
-  if(a == 0){
-    // test mode
-    document.getElementById("prediction").disabled = true; 
-    console.log("test mode");
-    if(keepTrain.length > 0){
-      compiledModel();  
-      trainLoss(keepTrain);
-      // lossHistory();
-      rawTrainingData = [];
-      keepTrain = [];
-    }
-    mode = 1;
-  }else{
-    // train mode
-     document.getElementById("prediction").disabled = false;
-    console.log("train mode");
-    mode = 2;
-  }
-  console.log(a);
-}
-
-function selectPrediction(s){
-  predicted = s;
-  
-}
-
-function selectDrawing(a){
-  if(a == 0){
-    simulationFlag = false;
-  }else{
-    simulationFlag = true;
-  }
-}
-
-
-
-
-
+//-----------------------------------------------------------------
 // example:1 draw rectangle
 function* myrect(){
   let i = 0;
@@ -310,35 +221,3 @@ function* myrect(){
     i+= 5;
   }
 }
-
-
-
-
-
-
-
-
-
-class hoge{
- constructor(a) {
-    this.a = a;
-  }
-  
-  get getA(){
-    return this.a;
-  }
-  
-  set setA(a){
-    this.a = a;
-  }
-  
-}
-
-
-
-
-
-//movieファイルを再生する?
-//レーシングのコースみたいな画像を表示する
-//spaceボタンを押している時は、レコード始める・数秒・数点の記録
-//classとして整理 run, predict, start record, stop record
