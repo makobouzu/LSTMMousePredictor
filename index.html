@@ -1,27 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <title>LSTM Mouse Move Predictor</title>
+    <meta charset="utf-8">
+    <meta name="description" content="by Archival Archetyping" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.10.2/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.10.2/addons/p5.sound.min.js"></script>
-<!--     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.9.0"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"></script>
+    <link rel="icon" href="https://cdn.glitch.com/8cc698a0-7078-4f77-9a93-044edb60b5fe%2FRI_discordthumbnail.png?v=1595247878020" />
     <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
 
   </head>
   <body>
     <script src="sketch.js"></script>
-    <p>モード：
-    <input type="radio" name="q1" value="0" id="test" onchange="selectMode(this.value)" checked> test
-    <input type="radio" name="q1" value="1" id="train" onchange="selectMode(this.value)" > train
+    <p>モード [ 1 / 2 ]：
+      <input type="radio" name="q1" value="0" id="test" onchange="selectMode(this.value)" checked> test
+      <input type="radio" name="q1" value="1" id="train" onchange="selectMode(this.value)" > train
     </p>
-    <p><label for="vehicle1">予　測：</label>
-    <input type="checkbox" name="prediction" id="prediction" onchange="selectPrediction(this.checked)" disabled>
+    <p>描　画 [ a / s ]：
+      <input type="radio" name="q2" value="0" id="manual" onchange="selectDrawing(this.value)" checked> manual
+      <input type="radio" name="q2" value="1" id="auto" onchange="selectDrawing(this.value)"> auto
     </p>
-    <p>描　画：
-    <input type="radio" name="q2" value="0" id="manual" onchange="selectDrawing(this.value)" checked> manual
-    <input type="radio" name="q2" value="1" id="auto" onchange="selectDrawing(this.value)"> auto
+    <p align="justy">
+      Epoch： <span id="train-epoch"></span>
+    </p>
+    <p align="justy">
+      Loss ： <span id="train-loss"></span>
     </p>
 <!--     <canvas id="canvas_lossHistory"></canvas> -->
   </body>
