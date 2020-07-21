@@ -14,6 +14,11 @@
   </head>
   <body>
     <script src="sketch.js"></script>
+    <p>model： 
+    <select name="name" id="model_select" onchange="modelSelect(this.value)">
+      <option value="default_model">default</option>
+    </select>
+    </p>
     <p>モード [ 1 / 2 ]：
       <input type="radio" name="q1" value="0" id="test" onchange="selectMode(this.value)" checked> test
       <input type="radio" name="q1" value="1" id="train" onchange="selectMode(this.value)" > train
@@ -28,6 +33,11 @@
     <p align="justy">
       Loss ： <span id="train-loss"></span>
     </p>
+    <p>
+      <input type="text" id="model_name" name="model_name" size="20">
+      <input type="submit" name="save" value="save" onclick="modelSave()">
+    </p>
 <!--     <canvas id="canvas_lossHistory"></canvas> -->
   </body>
 </html>
+
