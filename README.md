@@ -1,49 +1,16 @@
-Our Project
-------------
+# Build Flow
+- Trainモードで学習を行う。
+- Testモードに遷移すると学習が始まる。
+- 推論結果に反映される。　　
 
-### ← README.md
+# Control 
+- キーボード "1"でTestモード  
+- キーボード "2"でTrainモード  
+- キーボード "a"でMouseの位置に対する推論  
+- キーボード "s"でmyfigureで選択した図形が描かれる。   
 
-That's this file, where you can tell people what your cool website does and how you built it.
+# ToDo
+- モデルの保存  
 
-### ← index.html
-
-Where you'll write the content of your website. 
-
-### ← origin.js
-
-[オリジナルソース](https://observablehq.com/@voodoohop/tensorflow-js-lstm-mouse-movement-predictor/safe)
-
-
-### ← sketch.js
-
-移植用
-
-
-### ← style.css
-
-CSS files add styling rules to your content.
-
-
-### ← assets
-
-Drag in `assets`, like images or music, to add them to your project
-
-Made by [Glitch](https://glitch.com/)
--------------------
-
-\ ゜o゜)ノ
-
-# TODO
-- モデルの保存機能
-- 最初の学習に補助線を出す
-- 学習のバリエーション?
-  - ライブラリ的なのないのかな？
-  - 映像を作って、指定して再生しつつキャプチャしていく。
-- 学習開始ボタンと止めるボタン（止まるところをきる）
-- R？コードわかるようにする
-- サーキットを辿っていく　→ 学習　→ はみださないように調整
-- ポイント上限設定（stop/startボタン）→ 反映
-- クラスとして整理
-  - start stop recording learn predict, xyを与えていく
-- 相対座標？
-- 時間軸を伸縮させる（1分考えてから次のコマに進む / 時間を含める）
+# Reference
+- [observable LSTM Mouse Movement Predictor](https://observablehq.com/@kiyu/tensorflow-js-lstm-mouse-movement-predictor)
