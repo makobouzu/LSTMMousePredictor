@@ -10,8 +10,9 @@ const batch_size              = 32; //一回の学習で回す数
 const circle_size             = 10;
 let   mode                    = 1; //test mode(1) - train mode(2)
 let   simulation_flg          = false; //train時に推論結果を返すかどうか
+let   keytyped_flg            = false; //saveの時のkeyType判定
 const figure                  = myCircle();
-
+let   draw_prediction         = true;//予測を描画するか
 
 //配列変換の便利機能
 const pointToArray      = ({x,y})   => [x,y];
@@ -111,38 +112,67 @@ async function modelSelect(_model){
 }
 
 async function modelSave(_model){
-  console.log("saving...")
   let save_name = document.getElementById("model_name").value;
-  let save_url = location.href + "models/"+save_name;
-  let saveResult = await model.save(save_url);
-  console.log(saveResult.responses[0].status);
-  if(saveResult.responses[0].status == 200){console.log("saved!")}
-
-  if(models.indexOf(save_name) == -1){
-    let option = document.createElement("option");
-        option.setAttribute("value", save_name);
-        option.setAttribute("id", save_name);
-        option.text = save_name;
-        option.selected = true;
-        document.getElementById("model_select").appendChild(option);
-  } else {
-    document.getElementById(save_name).selected = true;
+  if(!save_name){
+    console.log("file name is empty.")
+  }else{
+    console.log("saving...")
+    let save_url = location.href + "models/" + save_name;
+    let saveResult = await model.save(save_url);
+    console.log(saveResult.responses[0].status);
+    if(saveResult.responses[0].status == 200){console.log("saved!")}
+    console.log(save_name, models)
+    if(models.indexOf(save_name) === -1){
+      let option = document.createElement("option");
+      option.setAttribute("value", save_name);
+      option.setAttribute("id", save_name);
+      option.text = save_name;
+      option.selected = true;
+      document.getElementById("model_select").appendChild(option);
+      models.push(save_name);
+    } else {
+      document.getElementById(save_name).selected = true;
+    }
   }
 }
 
 /* draw function ---------------------------------- */
 //円の描画
-function drawPoints(_prediction_source, _prediction){
-  //軌跡の描画
-  fill(255, 138, 128);
+function drawPoints(_prediction_source, _prediction){ 
+  drawPredictionSource(_prediction_source);
+  if(draw_prediction){
+      drawPrediction(_prediction);    
+  }
+}
+
+//軌跡の描画
+function drawPredictionSource(_prediction_source){
+  
   for(let i = 0; i < _prediction_source.length; i++){
-    fill(255, 138, 128);
+    alpha = 255*i/(_prediction_source.length-1);
+    fill(255, 138, 128, alpha);
+    stroke(0,0,0,alpha);
     ellipse(_prediction_source[i].x * width, _prediction_source[i].y * height, circle_size, circle_size);
   }
-  //推論の描画
-  fill(128, 149, 255);
-  for(let i = 0; i < _prediction.length; i++){
+  stroke(0,0,0,255);
+}
+
+//推論の描画
+function drawPrediction(_prediction){
+    for(let i = 0; i < _prediction.length; i++){
+    fill(128, 149, 255);
     ellipse(_prediction[i].x * width, _prediction[i].y * height, circle_size, circle_size);
+  }
+}
+
+//推論の描画の切替
+function changeDrawPrediction(value) {
+  if (value === '推論を表示') {
+    document.getElementById("change_draw").value = '推論を非表示';
+    draw_prediction = true;
+  } else {
+    document.getElementById("change_draw").value = '推論を表示';
+    draw_prediction = false;
   }
 }
 
@@ -221,8 +251,8 @@ function selectMode(a){
       keep_data = formatData(raw_data).slice();
       trainLoss(keep_data);
       //データの初期化
-      raw_data  = [];
-      keep_data = [];
+      // raw_data  = [];
+      // keep_data = [];
     }
     mode = 1;
   }else{
@@ -240,23 +270,35 @@ function selectDrawing(a){
   }
 }
 
+//textboxへのtypeとの区別
+function textSelect(){
+  keytyped_flg = true;
+}
+function textOut(){
+  keytyped_flg = false;
+}
+
 // keyboard Pressed
 function keyTyped(){
-  if(key === "1"){
-    //test モード
-    selectMode(0)
-    document.getElementById("test").checked = true;
-  }else if(key === "2"){
-    // train モード
-    document.getElementById("train").checked = true;
-    selectMode(1)
-  }
-  if(key === "s"){
-    document.getElementById("auto").checked = true;
-    selectDrawing(1);
-  }else if(key === "a"){
-    document.getElementById("manual").checked = true;
-    selectDrawing(0);
+  if(!keytyped_flg){
+    if(key === "1"){
+      //test モード
+      selectMode(0)
+      document.getElementById("test").checked = true;
+    }else if(key === "2"){
+      // train モード
+      document.getElementById("train").checked = true;
+      selectMode(1)
+    }
+    if(key === "s"){
+      document.getElementById("auto").checked = true;
+      selectDrawing(1);
+    }else if(key === "a"){
+      document.getElementById("manual").checked = true;
+      selectDrawing(0);
+    }
+  }else{
+    return;
   }
 }
 

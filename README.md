@@ -3,9 +3,11 @@
   - default_model_urlで他のプロジェクトで学習したモデルを指定することも可能。  
 - Trainモードで学習を行う。
 - Testモードに遷移すると学習が始まる。
-- 推論結果に反映される。　　
+- 推論結果に反映される。
+- エディト画面でmodelsに足したものが反映されない場合は、Tools -> Terminal -> "refresh"をタイプ
 
 # Control 
+- command + alt + iでインスペクターを出し、consoleを出すと様々な処理の様子が見れる。
 - Pull down Tabで既に学習したモデルを呼び出し
 - キーボード "1"でTestモード  
 - キーボード "2"でTrainモード  
@@ -17,6 +19,11 @@
 
 # ToDo
 - ~~モデルの保存~~
+- ~~"1", "2", "a", "s"を押しても保存される~~(天野も一応やりました)
+- ~~二重保存, 空欄保存の対処~~(天野も一応やりました)
+- ~~推論を出さないモードの作成~~(永井さんがやりました)
+- ~~alpha値変える~~(永井さんがやりました)
+- modelの初期weightがどうなってるのか
 
 # Reference
 - [observable LSTM Mouse Movement Predictor](https://observablehq.com/@kiyu/tensorflow-js-lstm-mouse-movement-predictor)
