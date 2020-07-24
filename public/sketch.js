@@ -147,7 +147,6 @@ function drawPoints(_prediction_source, _prediction){
 
 //軌跡の描画
 function drawPredictionSource(_prediction_source){
-  
   for(let i = 0; i < _prediction_source.length; i++){
     alpha = 255*i/(_prediction_source.length-1);
     fill(255, 138, 128, alpha);
@@ -179,14 +178,14 @@ function changeDrawPrediction(value) {
 /*  predict ------------------------------------- */
 //推論
 async function predict(_x, _y, _prediction_source) {
-  let mousePos = {x:_x/width, y:_y/height};
+  let mousePos = {x: _x/width, y: _y/height};
   _prediction_source.push(mousePos);
   _prediction_source.shift();
 
   //データの取得
   let input = _prediction_source.slice();
   let prediction_source = _prediction_source.slice();
-  for (let p=0; p < predict_ahead; p++) {
+  for (let p = 0; p < predict_ahead; p++) {
     const predictionNow =  arrayToPoint(await model.predict(formatInputTensor(input)).data());
     input  = [...input, predictionNow].slice(-position_history_length);
   }
@@ -200,7 +199,7 @@ function formatData(_raw_data){
   const hold_data = _raw_data.slice();
   let train_data = [];
   for(let i = 0; i < hold_data.length - 1; i++){
-    let joint_data = {};
+    let joint_data   = {};
     joint_data.data  = hold_data[i]; //dataに格納する軌跡のデータ
     joint_data.label = hold_data[i+1][position_history_length-1]; //16組のdataの最後(その時点の現在位置)
     train_data.push(joint_data);
