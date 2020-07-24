@@ -2,7 +2,7 @@ let   model;  //現在使用してるmodel
 let   models; //使用可能なmodel
 let   default_model_url       = "https://raw.githubusercontent.com/voodoohop/Mouse_tracking_predictor/master/tensorflowjs_model/model.json" //default model, you can change value to pretrained model
 const position_history_length = 16; //学習に渡すmouseのpositionの長さ
-const predict_ahead           = 16; //推論される長さ 16手先まで推論
+const predict_ahead           = 16; //推論される長さ 16手先まで推論 (1 - 16)
 let   prediction_source       = []; //mouseの軌跡・figureの軌跡
 let   raw_data                = []; //train時にxy座標を格納する可変長Array
 let   keep_data               = []; //xy座標とlabelを格納するか変調Array
@@ -250,8 +250,8 @@ function selectMode(a){
       keep_data = formatData(raw_data).slice();
       trainLoss(keep_data);
       //データの初期化
-      // raw_data  = [];
-      // keep_data = [];
+      raw_data  = [];
+      keep_data = [];
     }
     mode = 1;
   }else{
