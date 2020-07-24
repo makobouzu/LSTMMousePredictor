@@ -250,8 +250,8 @@ function selectMode(a){
       keep_data = formatData(raw_data).slice();
       trainLoss(keep_data);
       //データの初期化
-      // raw_data  = [];
-      // keep_data = [];
+      raw_data  = [];
+      keep_data = [];
     }
     mode = 1;
   }else{
