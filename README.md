@@ -17,13 +17,5 @@
   (名前を変更しない場合は上書き保存される。)   
   ※"1"や"2"を押すとモード変更がされてしまうので、使用しないこと。
 
-# ToDo
-- ~~モデルの保存~~
-- ~~"1", "2", "a", "s"を押しても保存される~~(天野も一応やりました)
-- ~~二重保存, 空欄保存の対処~~(天野も一応やりました)
-- ~~推論を出さないモードの作成~~(永井さんがやりました)
-- ~~alpha値変える~~(永井さんがやりました)
-- modelの初期weightがどうなってるのか
-
 # Reference
 - [observable LSTM Mouse Movement Predictor](https://observablehq.com/@kiyu/tensorflow-js-lstm-mouse-movement-predictor)
